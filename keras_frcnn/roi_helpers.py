@@ -257,17 +257,18 @@ def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
 #하나의 예측 좌표를 전달
 def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=300,overlap_thresh=0.9):
     #rpn_layer = probs
-    #regr_layer = 
-    regr_layer = regr_layer / C.std_scaling 
+    #regr_layer = bboxes
+    
+    regr_layer = regr_layer / C.std_scaling  #bboxes 정규화?
 
-    anchor_sizes = C.anchor_box_scales
-    anchor_ratios = C.anchor_box_ratios
+    anchor_sizes = C.anchor_box_scales #[[a,b,c]]
+    anchor_ratios = C.anchor_box_ratios #[[a,b],[c,d],[e,f]]
 
     assert rpn_layer.shape[0] == 1
 
     if dim_ordering == 'th':
         (rows,cols) = rpn_layer.shape[2:]
-
+        
     elif dim_ordering == 'tf':
         (rows, cols) = rpn_layer.shape[1:3]
 
@@ -280,23 +281,26 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     for anchor_size in anchor_sizes:
         for anchor_ratio in anchor_ratios:
 
-            anchor_x = (anchor_size * anchor_ratio[0])/C.rpn_stride
+            anchor_x = (anchor_size * anchor_ratio[0])/C.rpn_stride #rpn_stride의 기능은?
             anchor_y = (anchor_size * anchor_ratio[1])/C.rpn_stride
             if dim_ordering == 'th':
+                
+                #******regressor 구하는 좌표****
+                #정답 좌표를 보정...?
                 regr = regr_layer[0, 4 * curr_layer:4 * curr_layer + 4, :, :]
             else:
                 regr = regr_layer[0, :, :, 4 * curr_layer:4 * curr_layer + 4]
                 regr = np.transpose(regr, (2, 0, 1))
-
+    
             X, Y = np.meshgrid(np.arange(cols),np. arange(rows))
-
-            A[0, :, :, curr_layer] = X - anchor_x/2
+            
+            A[0, :, :, curr_layer] = X - anchor_x/2 #
             A[1, :, :, curr_layer] = Y - anchor_y/2
             A[2, :, :, curr_layer] = anchor_x
             A[3, :, :, curr_layer] = anchor_y
 
-            if use_regr:
-                A[:, :, :, curr_layer] = apply_regr_np(A[:, :, :, curr_layer], regr)
+            if use_regr: #apply_regr_np(X, T)
+                A[:, :, :, curr_layer] = apply_regr_np(A[:, :, :, curr_layer], regr) #regression 수행.
 
             A[2, :, :, curr_layer] = np.maximum(1, A[2, :, :, curr_layer])
             A[3, :, :, curr_layer] = np.maximum(1, A[3, :, :, curr_layer])
