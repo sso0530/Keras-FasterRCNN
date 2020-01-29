@@ -22,7 +22,7 @@ def calc_iou(R, img_data, C, class_mapping):
         gta[bbox_num, 2] = int(round(bbox['y1'] * (resized_height / float(height))/C.rpn_stride))
         gta[bbox_num, 3] = int(round(bbox['y2'] * (resized_height / float(height))/C.rpn_stride))
 
-    x_roi = []
+    x_roi = [] #RoI 계산
     y_class_num = []
     y_class_regr_coords = []
     y_class_regr_label = []
@@ -37,15 +37,24 @@ def calc_iou(R, img_data, C, class_mapping):
 
         best_iou = 0.0
         best_bbox = -1
+        
+        #regjon proposal 여러개
+        #IoU 최고 점수 뽑아내기
         for bbox_num in range(len(bboxes)):
+            
+            #IoU 
             curr_iou = data_generators.iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]], [x1, y1, x2, y2])
             if curr_iou > best_iou:
+                #IoU 최고 점수 계산
                 best_iou = curr_iou
                 best_bbox = bbox_num
-
+        
+        #IoU 최고 점수가 Config의 min overlap보다 작으면 RoI 해당 안됌.
         if best_iou < C.classifier_min_overlap:
                 continue
         else:
+            #IoU 최고 점수가 Config 의 min_overlap보다 많으면 RoI 계산
+            #Note: 한 예상 box에서 RoI가 여러개 일 수 있음.
             w = x2 - x1
             h = y2 - y1
             x_roi.append([x1, y1, w, h])
