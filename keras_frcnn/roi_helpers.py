@@ -261,19 +261,21 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     
     regr_layer = regr_layer / C.std_scaling  #bboxes 정규화?
 
-    anchor_sizes = C.anchor_box_scales #[[a,b,c]]
-    anchor_ratios = C.anchor_box_ratios #[[a,b],[c,d],[e,f]]
+    anchor_sizes = C.anchor_box_scales #[128, 256, 512]
+    anchor_ratios = C.anchor_box_ratios #[[1, 1], [1, 2], [2, 1]]
 
     assert rpn_layer.shape[0] == 1
 
     if dim_ordering == 'th':
-        (rows,cols) = rpn_layer.shape[2:]
+        (rows,cols) = rpn_layer.shape[2:] 
         
-    elif dim_ordering == 'tf':
-        (rows, cols) = rpn_layer.shape[1:3]
+    elif dim_ordering == 'tf': #밑에께 tf임.
+        (rows, cols) = rpn_layer.shape[1:3] #rpn_layer.shape[2],[3],[..]achor로 변환? 계산하기전? #변의 길이?
 
     curr_layer = 0
     if dim_ordering == 'tf':
+        
+        #A=((좌표,rows,cols,layer구분))
         A = np.zeros((4, rpn_layer.shape[1], rpn_layer.shape[2], rpn_layer.shape[3]))
     elif dim_ordering == 'th':
         A = np.zeros((4, rpn_layer.shape[2], rpn_layer.shape[3], rpn_layer.shape[1]))
@@ -281,20 +283,21 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     for anchor_size in anchor_sizes:
         for anchor_ratio in anchor_ratios:
 
-            anchor_x = (anchor_size * anchor_ratio[0])/C.rpn_stride #rpn_stride의 기능은?
-            anchor_y = (anchor_size * anchor_ratio[1])/C.rpn_stride
+            anchor_x = (anchor_size * anchor_ratio[0])/C.rpn_stride #(125*1)/16 (125*1)/16 ...
+            anchor_y = (anchor_size * anchor_ratio[1])/C.rpn_stride #(125*1)/16 (125*2)/16 ...
             if dim_ordering == 'th':
                 
                 #******regressor 구하는 좌표****
-                #정답 좌표를 보정...?
-                regr = regr_layer[0, 4 * curr_layer:4 * curr_layer + 4, :, :]
+                #bounding box regression : 최종에서 loss 계산 (Ground Truth - Predicted Boundig Box)/ (Predicted Bounding Box width)
+                regr = regr_layer[0, 4 * curr_layer:4 * curr_layer + 4, :, :] #[0,0:4,:,:], [0,4:8,:,:]
             else:
-                regr = regr_layer[0, :, :, 4 * curr_layer:4 * curr_layer + 4]
+                regr = regr_layer[0, :, :, 4 * curr_layer:4 * curr_layer + 4] 
                 regr = np.transpose(regr, (2, 0, 1))
     
             X, Y = np.meshgrid(np.arange(cols),np. arange(rows))
             
-            A[0, :, :, curr_layer] = X - anchor_x/2 #
+            #A = anchor
+            A[0, :, :, curr_layer] = X - anchor_x/2 # 
             A[1, :, :, curr_layer] = Y - anchor_y/2
             A[2, :, :, curr_layer] = anchor_x
             A[3, :, :, curr_layer] = anchor_y
