@@ -227,7 +227,10 @@ def rpn(base_layers, num_anchors):
 
     x_class = Convolution2D(num_anchors, (1, 1), activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')(x)
     x_regr = Convolution2D(num_anchors * 4, (1, 1), activation='linear', kernel_initializer='zero', name='rpn_out_regress')(x)
-
+    
+    #base_layer가 왜 필요하지??????
+    #model 에 전해주는 layer는 rpn[:2]
+    
     return [x_class, x_regr, base_layers]
 
 
@@ -242,7 +245,7 @@ def classifier(base_layers, input_rois, num_rois, nb_classes=21, trainable=False
         pooling_regions = 7
         input_shape = (num_rois, 1024, 7, 7)
 
-    out_roi_pool = RoiPoolingConv(pooling_regions, num_rois)([base_layers, input_rois])
+    out_roi_pool = RoiPoolingConv(pooling_regions, num_rois)([base_layers, input_rois]) #Spatial Pyramid Pooling
     out = classifier_layers(out_roi_pool, input_shape=input_shape, trainable=True)
 
     out = TimeDistributed(Flatten())(out)
@@ -250,5 +253,5 @@ def classifier(base_layers, input_rois, num_rois, nb_classes=21, trainable=False
     out_class = TimeDistributed(Dense(nb_classes, activation='softmax', kernel_initializer='zero'), name='dense_class_{}'.format(nb_classes))(out)
     # note: no regression target for bg class
     out_regr = TimeDistributed(Dense(4 * (nb_classes-1), activation='linear', kernel_initializer='zero'), name='dense_regress_{}'.format(nb_classes))(out)
-    return [out_class, out_regr]
+    return [out_class, out_regr] #최종 결과 
 
