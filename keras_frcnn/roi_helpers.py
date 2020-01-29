@@ -283,24 +283,31 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     for anchor_size in anchor_sizes:
         for anchor_ratio in anchor_ratios:
 
-            anchor_x = (anchor_size * anchor_ratio[0])/C.rpn_stride #(125*1)/16 (125*1)/16 ...
+            anchor_x = (anchor_size * anchor_ratio[0])/C.rpn_stride #(125*1)/16 (125*1)/16 ...rpn_stride?
             anchor_y = (anchor_size * anchor_ratio[1])/C.rpn_stride #(125*1)/16 (125*2)/16 ...
-            if dim_ordering == 'th':
-                
-                #******regressor 구하는 좌표****
-                #bounding box regression : 최종에서 loss 계산 (Ground Truth - Predicted Boundig Box)/ (Predicted Bounding Box width)
-                regr = regr_layer[0, 4 * curr_layer:4 * curr_layer + 4, :, :] #[0,0:4,:,:], [0,4:8,:,:]
+            if dim_ordering == 'th'             
+                regr = regr_layer[0, 4 * curr_layer:4 * curr_layer + 4, :, :]
             else:
+                #******regressor 구하는 좌표****
+                #bounding box regression : 최종에서 loss 계산 (Ground Truth - Predicted Boundig Box)/ (Predicted Bounding Box width)                
+                #tf
+                #(samples..?,채널 수,feature map size1, feature map size2)
+                #
+                 #[0,0:4,:,:], [0,4:8,:,:]
+                 #4k(anchor_box)랑 관련..............?
                 regr = regr_layer[0, :, :, 4 * curr_layer:4 * curr_layer + 4] 
-                regr = np.transpose(regr, (2, 0, 1))
-    
-            X, Y = np.meshgrid(np.arange(cols),np. arange(rows))
+                regr = np.transpose(regr, (2, 0, 1)) #?
+            
+            #각자의 input image에 대해서 conv를 적용한 이미지의 크기가 다 다르다
+            #rows와 cols의 길이가 다를 수 밖에 없다.
+            #X, Y feature map의 크기?
+            X, Y = np.meshgrid(np.arange(cols), np.arange(rows)) #sliding window 오른쪽 위, Y= sliding window 오른쪽 위 꼭짓점.
             
             #A = anchor
-            A[0, :, :, curr_layer] = X - anchor_x/2 # 
-            A[1, :, :, curr_layer] = Y - anchor_y/2
-            A[2, :, :, curr_layer] = anchor_x
-            A[3, :, :, curr_layer] = anchor_y
+            A[0, :, :, curr_layer] = X - anchor_x/2 # anchor_box 중심
+            A[1, :, :, curr_layer] = Y - anchor_y/2 # anchor_box 중심
+            A[2, :, :, curr_layer] = anchor_x # anchor_box width
+            A[3, :, :, curr_layer] = anchor_y # achor box height
 
             if use_regr: #apply_regr_np(X, T)
                 A[:, :, :, curr_layer] = apply_regr_np(A[:, :, :, curr_layer], regr) #regression 수행.
