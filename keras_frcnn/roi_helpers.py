@@ -7,16 +7,25 @@ import time
 
 
 def calc_iou(R, img_data, C, class_mapping):
-
-    bboxes = img_data['bboxes']
+    
+##############################################
+###############ground truth###################
+##############################################    
+    
+    
+    
+    bboxes = img_data['bboxes'] #ground truth
+    
     (width, height) = (img_data['width'], img_data['height'])
     # get image dimensions for resizing
     (resized_width, resized_height) = data_generators.get_new_img_size(width, height, C.im_size)
 
-    gta = np.zeros((len(bboxes), 4))
+    gta = np.zeros((len(bboxes), 4)) #ground truth 좌표 저장 list
 
-    for bbox_num, bbox in enumerate(bboxes):
+    for bbox_num, bbox in enumerate(bboxes): #
         # get the GT box coordinates, and resize to account for image resizing
+        # ex) [[1번 bounding box의 좌표(xleft,yleft,xright, yright)] , [2번 bounding box의 좌표] ,..., [n번 bounding box의 좌표]]
+        
         gta[bbox_num, 0] = int(round(bbox['x1'] * (resized_width / float(width))/C.rpn_stride))
         gta[bbox_num, 1] = int(round(bbox['x2'] * (resized_width / float(width))/C.rpn_stride))
         gta[bbox_num, 2] = int(round(bbox['y1'] * (resized_height / float(height))/C.rpn_stride))
@@ -28,6 +37,14 @@ def calc_iou(R, img_data, C, class_mapping):
     y_class_regr_label = []
     IoUs = [] # for debugging only
 
+    
+    
+##############################################
+###############예측###########################
+#config에서 roi num 할당 해줌#################
+# R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
+##############################################    
+    
     for ix in range(R.shape[0]):
         (x1, y1, x2, y2) = R[ix, :]
         x1 = int(round(x1))
@@ -59,10 +76,14 @@ def calc_iou(R, img_data, C, class_mapping):
             h = y2 - y1
             x_roi.append([x1, y1, w, h])
             IoUs.append(best_iou)
-
+            
+            
+            #IoU가 negative도 아니고 posivite도 아니면 class==backgraound
             if C.classifier_min_overlap <= best_iou < C.classifier_max_overlap:
                 # hard negative example
                 cls_name = 'bg'
+           
+            
             elif C.classifier_max_overlap <= best_iou:
                 cls_name = bboxes[best_bbox]['class']
                 cxg = (gta[best_bbox, 0] + gta[best_bbox, 1]) / 2.0
