@@ -231,15 +231,21 @@ for epoch_num in range(num_epochs):
         # data generator에서 X, Y, image 가져오기
         X, Y, img_data = next(data_gen_train)
         
-        #rpn network 학습시키고 loss 결과 반환        
+        #rpn network 학습시키고 loss 결과 반환
+        #The Sequential model API
         loss_rpn = model_rpn.train_on_batch(X, Y)
+        #result = loss=[losses.rpn_loss_cls(num_anchors), losses.rpn_loss_regr(num_anchors)])
         write_log(callback, ['rpn_cls_loss', 'rpn_reg_loss'], loss_rpn, train_step) #train_step 별 loss_rpn저장.
         
         #X에 대해 Y예측 하기 (bbox, probs 예상)
-        P_rpn = model_rpn.predict_on_batch(X) #예측하기 class, bounding box 좌표
+        
+        P_rpn = model_rpn.predict_on_batch(X) 
+        #Numpy array(s) of predictions.
 
         R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
         #max supression으로 하나의 예측 값만을 반환
+        #P_rpn[0] rpn_layer, P_rpn[1] regr_layer
+        #probs/ bboxes
         
         # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
         
