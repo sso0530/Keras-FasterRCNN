@@ -303,7 +303,7 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
             #X, Y feature map의 크기?
             X, Y = np.meshgrid(np.arange(cols), np.arange(rows)) #sliding window 오른쪽 위, Y= sliding window 오른쪽 위 꼭짓점.
             
-            #A = anchor
+            #A[0] 
             A[0, :, :, curr_layer] = X - anchor_x/2 # anchor_box 중심
             A[1, :, :, curr_layer] = Y - anchor_y/2 # anchor_box 중심
             A[2, :, :, curr_layer] = anchor_x # anchor_box width
@@ -311,7 +311,8 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
 
             if use_regr: #apply_regr_np(X, T)
                 A[:, :, :, curr_layer] = apply_regr_np(A[:, :, :, curr_layer], regr) #regression 수행.
-
+            
+            #
             A[2, :, :, curr_layer] = np.maximum(1, A[2, :, :, curr_layer])
             A[3, :, :, curr_layer] = np.maximum(1, A[3, :, :, curr_layer])
             A[2, :, :, curr_layer] += A[0, :, :, curr_layer]
