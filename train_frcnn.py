@@ -293,6 +293,8 @@ for epoch_num in range(num_epochs):
                 sel_samples = random.choice(neg_samples)
             else:
                 sel_samples = random.choice(pos_samples)
+######################################model_classifier###############################################################################
+################# After reciving the ROI Proposals ##################################################################################
 
         loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]], [Y1[:, sel_samples, :], Y2[:, sel_samples, :]])
         write_log(callback, ['detection_cls_loss', 'detection_reg_loss', 'detection_acc'], loss_class, train_step)
